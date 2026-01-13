@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Another Me | 취향 기반 취미 추천 플랫폼</title>
+    <style>
+        :root { 
+            --bg: #F8F9FA; --card: #FFFFFF; --text-main: #2D3436; --text-sub: #636E72;
+            --identical: #0984E3; --another: #6C5CE7; --border: #DFE6E9;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: #E9ECEF; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: var(--text-main); }
+        
+        .app { width: 380px; height: 90vh; max-height: 820px; background: var(--bg); border-radius: 25px; display: flex; flex-direction: column; overflow: hidden; position: relative; box-shadow: 0 20px 50px rgba(0,0,0,0.1); transition: 0.5s; }
+        @media (max-width: 400px) { .app { width: 100%; height: 100vh; border-radius: 0; } }
+
+        .page { display: none; width: 100%; height: 100%; padding: 45px 30px; flex-direction: column; overflow-y: auto; }
+        .active { display: flex; }
+        
+        .start-title { font-weight: 700; letter-spacing: -1px; line-height: 1.6; margin-bottom: 35px; font-size: 20px; word-break: keep-all; color: var(--text-main); }
+        
+        h2 { font-weight: 700; letter-spacing: -1px; line-height: 1.5; margin-bottom: 35px; font-size: 22px; word-break: keep-all; color: var(--text-main); }
+        .q-num { font-size: 12px; color: var(--another); font-weight: 700; margin-bottom: 12px; letter-spacing: 1.5px; text-transform: uppercase; transition: 0.3s; }
+        
+        .hidden-signal { animation: pulse 1.5s infinite; color: #ff7675; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+
+        .btn-survey { padding: 18px; border: 1px solid var(--border); background: var(--card); color: var(--text-main); cursor: pointer; text-align: left; margin-bottom: 12px; font-size: 15px; border-radius: 12px; transition: 0.3s; width: 100%; }
+        .btn-survey:hover { border-color: var(--another); color: var(--another); background: #F3F0FF; }
+
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; min-height: 20px; }
+        .btn-back { background: none; border: none; color: var(--text-sub); font-size: 11px; cursor: pointer; font-weight: 700; padding: 5px; }
+        .btn-back:hover { color: var(--another); }
+
+        .spinner { width: 40px; height: 40px; border: 3px solid #f3f3f3; border-top: 3px solid var(--another); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .choice-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 40px; }
+        .btn-choice { width: 100%; padding: 28px 22px; border-radius: 16px; cursor: pointer; transition: 0.4s; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; border: 1px solid var(--border); }
+        .btn-choice.normal { background: #fff; color: var(--identical); border-color: var(--identical); }
+        .btn-choice.another { background: var(--another); color: #fff; border: none; box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
+        .main-label { font-size: 18px; font-weight: 800; }
+        .sub-label { font-size: 13px; opacity: 0.9; }
+
+        .call-to-action { font-size: 14px; color: var(--another); font-weight: 700; margin-bottom: 12px; text-align: center; }
+
+        .rank-item { display: flex; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #F1F3F5; }
+        .rank-num { color: var(--another); font-weight: 900; margin-right: 15px; font-size: 13px; }
+        .rank-name { font-size: 16px; font-weight: 600; }
+
+        .desc-box { background: var(--card); border: 1px solid var(--border); padding: 25px; border-radius: 18px; margin-bottom: 25px; }
+        .desc-text { font-size: 14px; line-height: 1.8; color: var(--text-sub); word-break: keep-all; }
+        .hobby-tag { display: inline-block; padding: 6px 12px; background: #F1F3F5; font-size: 11px; border-radius: 6px; color: var(--text-sub); border: 1px solid var(--border); margin-top: 15px; }
+        
+        .btn-retake-final { width: 100%; padding: 18px; background: var(--another); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; transition: 0.3s; text-align: center; }
+        
+        .hobby-item { padding: 15px; background: #F8F9FA; border-radius: 10px; margin-top: 10px; border-left: 4px solid var(--another); }
+        .hobby-item-name { font-weight: 800; font-size: 15px; color: var(--text-main); display: block; }
+        .hobby-item-desc { font-size: 12px; color: var(--text-sub); margin-top: 4px; display: block; line-height: 1.5; word-break: keep-all; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <div id="p-start" class="page active">
+            <div style="display: flex; flex-direction: column; height: 100%;">
+                <p class="q-num">ANOTHER ME LAB</p>
+                <h2 class="start-title">당신의 일상을 빛낼<br>익숙한 정체성과<br><span style="color:var(--another)">이면의 잠재력</span>을 찾아보세요!</h2>
+                <div style="margin-top: 10px;">
+                    <button class="btn-survey" style="text-align:center; background: var(--another); color:white; border:none; font-weight:700;" onclick="nextPage('p-survey')">취미 추천 받아보기</button>
+                </div>
+                <div style="flex:1"></div>
+            </div>
+        </div>
+        
+        <div id="p-survey" class="page">
+            <div class="header-nav">
+                <p class="q-num" id="q-step">SIGNAL 01/16</p>
+                <button id="back-btn" class="btn-back" style="visibility:hidden;" onclick="prevQ()">◀ BACK</button>
+            </div>
+            <h2 id="q-text"></h2>
+            <div id="q-options" style="display:flex; flex-direction:column;"></div>
+        </div>
+
+        <div id="p-loading" class="page">
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+                <div class="spinner"></div>
+                <div id="loading-text" style="color:var(--another); font-weight:600; text-align:center; line-height:1.5;">답변을 전송하고 있습니다</div>
+            </div>
+        </div>
+
+        <div id="p-mode" class="page">
+            <div class="header-nav">
+                <p class="q-num" id="summary-tag">RESULT SUMMARY</p>
+                <button class="btn-back" onclick="location.reload()">◀ 처음으로</button>
+            </div>
+            <h2 id="summary-headline"></h2>
+            <div id="rank-list" style="margin-bottom:30px;"></div>
+            <div style="flex:1"></div>
+            <div class="call-to-action">아래에서 취미 추천 받기</div>
+            <div class="choice-container">
+                <button class="btn-choice normal" onclick="showFinal('Normal')">
+                    <span class="main-label">IDENTICAL</span>
+                    <span class="sub-label">나랑 딱 맞는 취미 추천받기</span>
+                </button>
+                <button class="btn-choice another" onclick="showFinal('AnotherMe')">
+                    <span class="main-label">ANOTHER ME</span>
+                    <span class="sub-label">또 다른 내가 되는 취미 추천받기</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="p-result" class="page">
+            <div class="header-nav">
+                <p class="q-num" id="res-type-label">FINAL DOSSIER</p>
+                <button class="btn-back" onclick="nextPage('p-mode')">◀ BACK</button>
+            </div>
+            <h2 id="res-hobby" style="margin-bottom:20px; font-size: 26px; color:var(--another); font-weight: 800;"></h2>
+            <div class="desc-box">
+                <p id="res-one-liner" style="font-weight:700; color:var(--text-main); font-size:16px; margin-bottom:15px;"></p>
+                <div id="res-desc" class="desc-text"></div>
+                <div id="hobby-recommendations" style="margin-top:20px;"></div>
+                <div id="res-code" class="hobby-tag"></div>
+            </div>
+            <div style="flex:1"></div>
+            <button class="btn-retake-final" onclick="location.reload()">처음부터 다시 하기</button>
+        </div>
+    </div>
+
+<script>
+    const questions = [
+        { type: "log", q: "예측 불가능한 위기의 순간, 당신을 움직이는 실체는?", opt: [{t: "확신에 찬 찰나의 영감과 직감", v: 2}, {t: "대체로 직관적인 느낌에 의존", v: 1}, {t: "상황을 잠시 살피며 논리를 탐색", v: -1}, {t: "치밀하게 계산된 데이터와 논리", v: -2}] },
+        { type: "log", q: "복잡한 미로의 출구를 찾는 당신만의 방식은?", opt: [{t: "온몸의 본능과 감각을 완벽히 신뢰", v: 2}, {t: "발길이 닿는 대로 가볍게 이동", v: 1}, {t: "지나온 길을 되새기며 신중히 판단", v: -1}, {t: "미로의 구조를 완벽히 해부하고 분석", v: -2}] },
+        { type: "act", q: "당신의 영혼이 가장 뜨거워지는 곳은 어디입니까?", opt: [{t: "에너지가 폭발하는 열광적인 군중 속", v: 2}, {t: "활기찬 사람들과 소통하는 장소", v: 1}, {t: "조용한 대화가 가능한 차분한 공간", v: -1}, {t: "적막이 흐르는 고요한 나만의 요새", v: -2}] },
+        { type: "act", q: "일주일 간의 고독이 지속된다면, 당신은?", opt: [{t: "세상의 소음이 그리워 숨이 막힌다", v: 2}, {t: "사람들의 온기가 조금 그립다", v: 1}, {t: "혼자만의 시간을 어느 정도 즐긴다", v: -1}, {t: "비로소 자아의 평온함을 마주한다", v: -2}] },
+        { type: "mot", q: "다른 차원의 세계로 향하는 문이 열린다면?", opt: [{t: "망설임 없이 즉각 뛰어든다", v: 2}, {t: "흥미로운 가능성을 보고 다가간다", v: 1}, {t: "주변 상황을 살피며 조심스럽게 접근", v: -1}, {t: "위험 요소를 완벽히 검토한 후 움직인다", v: -2}] },
+        { type: "mot", q: "익숙한 길과 지름길인 숲길 앞에 선 당신의 선택은?", opt: [{t: "거칠어도 새로운 발견이 있는 숲길", v: 2}, {t: "조금 생소하더라도 흥미로운 경로", v: 1}, {t: "검증된 길에서 크게 벗어나지 않는 선", v: -1}, {t: "안전과 효율이 증명된 익숙한 길", v: -2}] },
+        { type: "ctrl", q: "철저히 짜인 계획이 어긋났을 때, 당신의 반응은?", opt: [{t: "예상치 못한 변수가 주는 전율을 즐긴다", v: -2}, {t: "상황에 맞춰 유연하게 대처한다", v: -1}, {t: "흐트러진 부분을 차근차근 정리한다", v: 1}, {t: "어떻게든 궤도를 되찾기 위해 질서를 세운다", v: 2}] },
+        { type: "ctrl", q: "매일 반복되는 루틴은 당신에게?", opt: [{t: "나를 지탱하는 완벽하고 견고한 성벽", v: 2}, {t: "안정감을 주는 편안한 일상", v: 1}, {t: "가끔은 변화를 주고 싶은 반복", v: -1}, {t: "나를 옥죄어오는 답답한 감옥", v: -2}] },
+        { type: "self", q: "거친 폭풍우 속의 배 위에서, 당신은 어떤 존재라고 생각합니까?", opt: [{t: "키를 잡고 모두에게 방향을 지시하는 자", v: 2}, {t: "의견을 제시하며 앞장서서 이끄는 자", v: 1}, {t: "팀의 결정을 따르며 역할을 수행하는 자", v: -1}, {t: "묵묵히 돛을 정비하며 배를 지탱하는 자", v: -2}] },
+        { type: "self", q: "세상 모두가 'YES'라고 할 때, 당신의 선택은?", opt: [{t: "나만의 믿음을 세상 끝까지 관철한다", v: 2}, {t: "내 소신을 분명하게 피력한다", v: 1}, {t: "다른 이들의 의견을 먼저 경청한다", v: -1}, {t: "전체의 흐름에 몸을 맡기고 순응한다", v: -2}] },
+        { type: "soc", q: "낯선 이들로 가득한 화려한 파티, 당신은 행동은?", opt: [{t: "스포트라이트의 중심에서 대화를 이끈다", v: 2}, {t: "적극적으로 먼저 다가가 인사를 건냅니다", v: 1}, {t: "아는 사람들 곁에서 편하게 머문다", v: -1}, {t: "무리 밖에서 조용히 분위기를 관찰한다", v: -2}] },
+        { type: "soc", q: "어떠한 상황에서 모든 시선이 당신을 향한다면?", opt: [{t: "그 짜릿한 긴장감을 온몸으로 만끽한다", v: 2}, {t: "주목받는 상황을 긍정적으로 즐긴다", v: 1}, {t: "조금 쑥스럽지만 묵묵히 행동한다", v: -1}, {t: "부담스러운 시선을 피해 숨고 싶어진다", v: -2}] },
+        { type: "emo", q: "누군가 눈물을 흘릴 때, 당신의 머릿속을 스치는 생각은?", opt: [{t: "문제를 해결해야 할 명확한 원인 규명", v: 2}, {t: "어떻게 도움을 줄 수 있을지 이성적 판단", v: 1}, {t: "그가 느끼는 감정에 대한 위로의 마음", v: -1}, {t: "그가 느끼는 슬픔에 대한 깊은 공명", v: -2}] },
+        { type: "emo", q: "잔인한 진실과 포근한 거짓 중, 무엇을 선택하겠습니까?", opt: [{t: "아무리 아파도 명확한 진실의 칼날", v: 2}, {t: "사실 관계가 명확한 객관적 진술", v: 1}, {t: "상대방의 마음을 배려한 유연한 전달", v: -1}, {t: "잠시라도 위로가 될 따뜻한 거짓", v: -2}] },
+        { type: "res", q: "당신을 가장 전율하게 만드는 성취의 순간은?", opt: [{t: "압도적인 승리를 증명하는 최종의 결과", v: 2}, {t: "목표를 달성했을 때 느끼는 보람", v: 1}, {t: "무언가를 해 나가는 과정에서의 즐거움", v: -1}, {t: "치열하게 부딪혔던 그 과정의 뜨거운 기억과 경험", v: -2}] },
+        { type: "res", q: "고되게 정상에 올랐을 때, 당신의 머리 속엔?", opt: [{t: "결국 정복해냈다는 정복감", v: 2}, {t: "목표 지점에 도달했다는 안도감", v: 1}, {t: "올라오는 길에 보았던 사소한 풍경들", v: -1}, {t: "올라오며 마주한 수많은 풍경과 감정", v: -2}] }
+    ];
+
+    const pNames = { 
+        log:  { h: "아이디어 뱅크 💡", l: "분석가 🔍" },
+        act:  { h: "행동파 🔥", l: "사색가 🧘" },
+        mot:  { h: "자유로운 영혼 🌈", l: "현실주의자 🧱" },
+        ctrl: { h: "설계자 🏗️", l: "전략가 🎯" },
+        self: { h: "리더 🚩", l: "조력자 🤝" },
+        soc:  { h: "인싸 💃", l: "자발적 아싸 🏜️" },
+        emo:  { h: "이성주의자 ⚖️", l: "공감 능력자 💗" },
+        res:  { h: "완벽주의자 🏁", l: "경험주의자 👣" }
+	};
+
+     const reverseMap = {
+    "전천후 마스터 👑": "심연의 통찰자 🧿", 
+    "심연의 통찰자 🧿": "전천후 마스터 👑", 
+    "절대적 중립자 ⚪": "행동파 🔥",
+    "현실주의자 🧱": "아이디어 뱅크 💡",
+    "아이디어 뱅크 💡": "현실주의자 🧱",
+    "이성주의자 ⚖️": "공감 능력자 💗",
+    "공감 능력자 💗": "이성주의자 ⚖️",
+    "효율적 이상주의자 🧪": "낭만적 완벽주의자 🎨",
+    "낭만적 완벽주의자 🎨": "효율적 이상주의자 🧪",
+    "감성적인 수학자 💎": "승부사 🎲",
+    "승부사 🎲": "감성적인 수학자 💎",
+    "마에스트로 🎼": "사업가 💼",
+    "사업가 💼": "마에스트로 🎼",
+    "리더 🚩": "조력자 🤝",
+    "조력자 🤝": "리더 🚩",
+    "인싸 💃": "자발적 아싸 🏜️",
+    "자발적 아싸 🏜️": "인싸 💃",
+    "고독한 인싸 🍷": "파수꾼 🛡️",
+    "파수꾼 🛡️": "고독한 인싸 🍷",
+    "사교적인 반항아 🕺": "방구석 사령관 🏛️",
+    "방구석 사령관 🏛️": "사교적인 반항아 🕺",
+    "친절한 독재자 🐺": "예스맨 👌",
+    "예스맨 👌": "친절한 독재자 🐺",
+    "고독한 행동파 🏹": "자유로운 중재자 🍃",
+    "자유로운 중재자 🍃": "고독한 행동파 🏹",
+    "설계자 🏗️": "분석가 🔍",
+    "분석가 🔍": "설계자 🏗️",
+    "행동파 🔥": "사색가 🧘",
+    "사색가 🧘": "행동파 🔥",
+    "불도저 🚜": "방관자 👀",
+    "방관자 👀": "불도저 🚜",
+    "갓생러 🏆": "게으른 완벽주의자 🐌",
+    "게으른 완벽주의자 🐌": "갓생러 🏆",
+    "전략가 🎯": "전술가 🗺️",
+    "전술가 🗺️": "전략가 🎯",
+    "자유로운 영혼 🌈": "체계적인 반항아 🦾",
+    "체계적인 반항아 🦾": "자유로운 영혼 🌈",
+    "탐험가 🧭": "프로 과몰입러 🫠",
+    "프로 과몰입러 🫠": "탐험가 🧭",
+    "불굴의 성자 🙏": "개인주의자 🎭",
+    "개인주의자 🎭": "불굴의 성자 🙏",
+    "완벽주의자 🏁": "경험주의자 👣",
+    "경험주의자 👣": "완벽주의자 🏁",
+    "관찰자 🕵️": "탐험가 🧭"
+};
+
+    let userPattern = [], currentStep = 0, finalFP = "";
+
+    function nextPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        if (id === 'p-survey') renderQ();
+    }
+
+    function renderQ() {
+        const q = questions[currentStep];
+        document.getElementById('back-btn').style.visibility = (currentStep > 0) ? 'visible' : 'hidden';
+        document.getElementById('q-step').innerText = `SIGNAL ${String(currentStep + 1).padStart(2, '0')}/16`;
+        document.getElementById('q-text').innerText = q.q;
+        const opt = document.getElementById('q-options'); opt.innerHTML = '';
+        q.opt.forEach((o) => {
+            const b = document.createElement('button'); b.className = 'btn-survey'; b.innerText = o.t;
+            b.onclick = () => { userPattern.push({ type: q.type, val: o.v }); currentStep++; if (currentStep < 16) renderQ(); else startLoading(); };
+            opt.appendChild(b);
+        });
+    }
+
+    function prevQ() { if (currentStep > 0) { currentStep--; userPattern.pop(); renderQ(); } }
+
+    function startLoading() {
+        nextPage('p-loading');
+        const loadingTexts = ["잠재된 무의식을 스캔 중입니다", "당신의 이면 세계를 탐험하고 있어요", "데이터 조각들을 맞추는 중입니다", "거의 다 왔어요! 결과 조립 중..."];
+        let idx = 0;
+        const textElem = document.getElementById('loading-text');
+        const interval = setInterval(() => { idx++; if (idx < loadingTexts.length) textElem.innerText = loadingTexts[idx]; else clearInterval(interval); }, 1000);
+        setTimeout(() => { clearInterval(interval); finalize(); }, 4000);
+    }
+
+function finalize() {
+        nextPage('p-mode');
+        const s = {};
+        userPattern.forEach(p => s[p.type] = (s[p.type] || 0) + (p.val * 2));
+        
+        let fp = "";
+        const av = Object.values(s);
+
+        // 1. 특수 칭호 판정
+        const isMaster = av.every(v => v >= 4);
+        const isAbyss = av.every(v => v <= -4);
+        const isNeutral = av.every(v => Math.abs(v) < 1);
+
+    if (isMaster) fp = "전천후 마스터 👑";
+    else if (isAbyss) fp = "심연의 통찰자 🧿";
+    else if (isNeutral) fp = "절대적 중립자 ⚪";
+    
+    // 2. 일반 조합형 칭호 (기존 로직)
+	else if (s.log >= 0 && s.emo >= 1) fp = "감성적인 수학자 💎";
+	else if (s.mot >= 1 && s.ctrl >= 1) fp = "체계적인 반항아 🦾";
+	else if (s.act <= -1 && s.res >= 1) fp = "게으른 완벽주의자 🐌";
+	else if (s.self >= 1 && s.soc >= 1) fp = "고독한 인싸 🍷";
+	else if (s.log >= 1 && s.act <= -1) fp = "방구석 사령관 🏛️";
+	else if (s.self <= -1 && s.soc >= 1) fp = "예스맨 👌";
+	else if (s.mot >= 1 && s.res <= -1) fp = "탐험가 🧭";
+	else if (s.ctrl >= 1 && s.act <= -1) fp = "프로 과몰입러 🫠";	
+	else if (s.self >= 1 && s.emo <= -1) fp = "승부사 🎲";
+	else if (s.self >= 1 && s.emo >= 1) fp = "불굴의 성자 🙏";
+	else if (s.log <= -1 && s.emo <= -1) fp = "관찰자 🕵️";
+	else if (s.ctrl >= 1 && s.act >= 1) fp = "갓생러 🏆";
+	else if (s.ctrl <= -1 && s.act <= -1) fp = "방관자 👀";
+	else if (s.mot >= 1 && s.soc >= 1) fp = "사교적인 반항아 🕺";
+	else if (s.mot <= -1 && s.soc <= -1) fp = "파수꾼 🛡️";
+	else if (s.mot >= 1 && s.soc <= -1) fp = "자유로운 중재자 🍃";
+	else if (s.res >= 1 && s.emo >= 1) fp = "낭만적 완벽주의자 🎨";
+	else if (s.res <= -1 && s.log >= 1) fp = "효율적 이상주의자 🧪";
+	else if (s.self <= -1 && s.emo >= 1) fp = "개인주의자 🎭";
+	else if (s.log <= -1 && s.ctrl >= 1) fp = "마에스트로 🎼";
+	else if (s.act >= 1 && s.res <= -1) fp = "불도저 🚜";
+	else if (s.log >= 1 && s.mot <= -1) fp = "사업가 💼";
+	else if (s.self >= 1 && s.soc <= -1) fp = "친절한 독재자 🐺";
+	else if (s.act >= 1 && s.soc <= -2) fp = "고독한 행동파 🏹";
+	else if (s.emo <= -3 && s.res <= -3) fp = "경험주의자 👣";
+	else if (s.log <= -3 && s.act <= -3) fp = "분석가 🔍";
+	else if (s.ctrl >= 3 && s.res >= 3) fp = "설계자 🏗️";
+	else if (s.res >= 3 && s.log >= 3) fp = "완벽주의자 🏁";
+	else if (s.log >= 3 && s.act >= 3) fp = "아이디어 뱅크 💡";
+	else if (s.self >= 3 && s.soc >= 3) fp = "리더 🚩";
+	else if (s.log >= 3 && s.mot >= 3) fp = "자유로운 영혼 🌈";
+	else if (s.self <= -3 && s.soc <= -3) fp = "조력자 🤝";
+	else if (s.log <= -3 && s.ctrl >= 3) fp = "전략가 🎯";
+	else if (s.act >= 3 && s.mot >= 3) fp = "행동파 🔥";
+	else if (s.emo >= 3 && s.log <= -3) fp = "이성주의자 ⚖️";
+	else if (s.ctrl <= -3 && s.mot >= 3) fp = "전술가 🗺️";
+	else if (s.emo <= -3) fp = "공감 능력자 💗";
+	else if (s.soc >= 3) fp = "인싸 💃";
+	else if (s.soc <= -3) fp = "자발적 아싸 🏜️";
+
+
+	 else {
+            const topType = Object.keys(s).reduce((a, b) => Math.abs(s[a]) > Math.abs(s[b]) ? a : b);
+            fp = s[topType] >= 0 ? pNames[topType].h : pNames[topType].l;
+        }
+        
+        finalFP = fp;
+
+        let finalPre = "";
+        if (s.log > 0 && s.act > 0) {
+            if (s.log > s.act) finalPre = "✨ 직관적인";
+            else if (s.log < s.act) finalPre = "💥 폭발적인";
+            else finalPre = "🚒 거침없는";
+        } else if (s.log <= 0 && s.act > 0) {
+            if (Math.abs(s.log) > s.act) finalPre = "📐 철저한";
+            else if (Math.abs(s.log) < s.act) finalPre = "♟️ 전략적인";
+            else finalPre = "⚔️ 치밀한";
+        } else if (s.log > 0 && s.act <= 0) {
+            if (s.log > Math.abs(s.act)) finalPre = "🎨 감각적인";
+            else if (s.log < Math.abs(s.act)) finalPre = "🌊 깊이 있는";
+            else finalPre = "🧊 냉철한";
+        } else {
+            if (Math.abs(s.log) > Math.abs(s.act)) finalPre = "🛡️ 신중한";
+            else if (Math.abs(s.log) < Math.abs(s.act)) finalPre = "🌑 정적인";
+            else finalPre = "🌲 고요한";
+        }
+
+       if (fp.includes("분석가") && s.log <= -4) finalPre = "🌀 심연의";
+       else if (fp.includes("아이디어 뱅크") && s.log >= 4) finalPre = "🌠 기발한";
+       else if (fp.includes("행동파") && s.act >= 4) finalPre = "🔥 압도적인";
+       else if (fp.includes("인싸") && s.soc >= 4) finalPre = "✨ 화려한";
+       else if (fp.includes("자발적 아싸") && s.soc <= -4) finalPre = "🎧 평온한";
+       else if (fp.includes("설계자") && s.ctrl >= 4 && s.res >= 4) finalPre = "🛠️ 완전무결한";
+       else if (fp.includes("완벽주의자") && s.res >= 4 && s.log >= 4) finalPre = "📏 오차 없는";
+       else if (fp.includes("리더") && s.self >= 4 && s.soc >= 4) finalPre = "🚩 진두지휘하는";
+       else if (fp.includes("경험주의자") && s.res <= -4) finalPre = "👣 발로 뛰는";
+       else if (fp.includes("자유로운 영혼") && s.mot >= 4) finalPre = "🌈 구속 없는";
+       else if (fp.includes("전략가") && s.ctrl >= 4) finalPre = "🎯 치밀한";
+       else if (fp.includes("전술가") && s.mot >= 4) finalPre = "🗺️ 흐름을 읽는";
+       else if (fp.includes("이성주의자") && s.emo >= 4) finalPre = "⚖️ 냉철한";
+       else if (fp.includes("공감 능력자") && s.emo <= -4) finalPre = "💗 따스한";
+       else if (fp.includes("조력자") && s.self <= -4) finalPre = "🤝 헌신적인";
+        
+        let themeColor = '#6C5CE7';
+        const tagElem = document.getElementById('summary-tag');
+        tagElem.classList.remove('hidden-signal');
+        tagElem.innerText = "RESULT SUMMARY";
+
+        if (fp.includes("심연의 통찰자")) {
+            themeColor = '#1A1A2E'; finalPre = "🌌 범접 불가한";
+            tagElem.innerText = "[ ⚠ HIDDEN SIGNAL DETECTED ]";
+            tagElem.classList.add('hidden-signal');
+        } else if (fp.includes("전천후 마스터")) {
+            themeColor = '#D4AF37'; finalPre = "👑 경이로운";
+            tagElem.innerText = "[ ⭐ SPECIAL SIGNAL DETECTED ]";
+            tagElem.classList.add('hidden-signal');
+        } else if (fp.includes("절대적 중립자")) {
+            themeColor = '#576574'; finalPre = "⚪ 궁극의";
+            tagElem.innerText = "[ ⚖ NEUTRAL SIGNAL DETECTED ]";
+            tagElem.classList.add('hidden-signal');
+        } 
+
+        document.documentElement.style.setProperty('--another', themeColor);
+        document.getElementById('summary-headline').innerHTML = `분석 결과, 당신은<br><span style="color:var(--another);">${finalPre} ${fp}</span>입니다.`;
+        
+        const rDiv = document.getElementById('rank-list'); rDiv.innerHTML = '';
+        Object.keys(s).filter(k => s[k] !== 0).sort((a, b) => Math.abs(s[b]) - Math.abs(s[a])).slice(0, 3).forEach((k, i) => {
+            const val = s[k];
+            rDiv.innerHTML += `<div class="rank-item"><div class="rank-num">0${i+1}</div><div class="rank-name">${val > 0 ? pNames[k].h : pNames[k].l}</div></div>`;
+        });
+    }
+
+    function showFinal(m) {
+        nextPage('p-result');
+        const isA = (m === 'AnotherMe');
+        document.getElementById('res-type-label').innerText = isA ? "ANOTHER ME REPORT" : "IDENTICAL REPORT";
+        document.getElementById('res-hobby').innerText = isA ? "ANOTHER ME" : "IDENTICAL";
+        document.getElementById('res-one-liner').innerText = isA ? "내면 깊숙한 곳에 숨겨진 가능성은?" : "당신이 가장 편안하게 몰입할 환경은?";
+        document.getElementById('res-desc').innerText = isA ? "이 취미들은 당신이 평소에 억눌러왔던 에너지를 해소해 줄 수 있습니다. 낯설지만 짜릿한 변화를 시도해 보세요!" : "이 취미들은 당신의 강점을 극대화하고 심리적 안정감을 줍니다. 당신만의 페이스로 몰입의 즐거움을 느껴보세요!";
+        document.getElementById('res-code').innerText = `DNA-SEQ: #${Math.random().toString(16).slice(2,8).toUpperCase()} | ${isA ? 'ANOTHER' : 'IDENTICAL'}`;
+
+const hobbyDb = {
+    "전천후 마스터 👑": [
+        {n: "프리다이빙과 수중 촬영", d: "자신의 호흡을 통제하는 신체 능력, 물속이라는 특수 환경에 대한 지식, 고가의 다이빙 장비와 카메라를 다루는 기술, 그리고 최종적으로 아름다운 결과물을 만들어내는 미적 감각이 모두 필요합니다. 육각형의 모든 면을 채워야 완성되는 취미입니다."},
+        {n: "테크니컬 캠핑과 아웃도어 요리", d: "단순히 잠만 자는 캠핑이 아닙니다. 지형을 분석해 사이트를 설계하고, 수많은 캠핑 기어를 효율적으로 배치하며, 야생의 환경에서 전문 셰프 수준의 요리를 해내고, 함께 온 사람들의 분위기까지 리드해야 합니다. 멀티태스킹의 정점이라 할 수 있습니다."},
+        {n: "골프/테니스 클럽 운영과 분석", d: "폭발적인 에너지를 발산하는 동시에, 자신의 폼을 영상으로 분석하고 수치(비거리, 회전수 등)를 개선하는 전략적 접근이 필요합니다. 여기에 밝은 성격을 살려 동호회나 모임을 직접 관리하며 사람들을 조율하는 운영 능력까지 발휘할 때 힘을 얻습니다."}
+    ],
+    "심연의 통찰자 🧿": [
+        {n: "빈티지 오디오와 LP 수집", d: "단순히 음악만을 듣는 게 아닙니다. 특정 시대의 음반이 가진 역사적 배경을 탐구하고, 진공관 앰프나 스피커의 미세한 질감 차이를 분석합니다. 소리의 근원을 찾아가는 과정에서 자신만의 취향이라는 견고한 성을 쌓을 수 있습니다."},
+        {n: "흑백 필름 사진 촬영과 현상", d: "화려한 디지털 색감을 걷어내고, 빛과 그림자라는 세상의 본질에 집중합니다. 셔터를 누르는 순간부터 암실에서 약품을 사용해 직접 사진을 인화하는 고독한 공정은 당신의 세계를 시각화하기에 최적의 도구입니다."},
+        {n: "철학 에세이 집필 및 독립 출판", d: "읽고 생각하는 데서 멈추지 않고, 자신의 통찰을 하나의 논리적 구조로 완성합니다. 내면의 복잡한 사유를 텍스트로 박제하여 세상에 내놓는 과정은 당신에게 가장 깊은 카타르시스를 줍니다."}
+    ],
+    "절대적 중립자 ⚪": [
+        {n: "파인 티(Tea) 다회 및 티 코스 탐방", d: "차(茶)는 커피처럼 각성시키지도, 술처럼 취하게 하지도 않습니다. 딱 중용의 상태를 유지하게 하죠. 보이차나 우롱차의 미세한 온도를 맞추고 찻잔을 비우는 행위는 가장 평범해 보이지만, 그 정교한 과정을 통해 내면의 중립을 지키게 합니다."},
+        {n: "수영 혹은 웨이트 트레이닝", d: "격렬한 구기 종목이나 팀 스포츠는 감정의 동요가 큽니다. 반면, 정해진 레인을 묵묵히 왕복하는 수영이나 모든 운동의 기초이자 기구의 무게에만 집중하는 웨이트는 중립자가 세상과 거리를 두고 자신에게 집중하기 가장 좋은 '보통의' 수단입니다."},
+        {n: "미니멀 가드닝 및 테라리움 제작", d: "식물은 말이 없고 급격히 변하지 않습니다. 적절한 빛과 물이라는 '기본'만 지켜주면 되죠. 흙을 만지고 작은 생태계를 설계하는 과정은 과한 자극에 지친 당신에게 가장 무해하고 평온한 휴식을 제공합니다."}
+    ],
+    "분석가 🔍": [
+        {n: "모의투자 및 자산 배분 전략", d: "감에 의존하는 투자가 아닙니다. 과거의 데이터를 백테스팅하고, 자신만의 수익 모델을 설계해 봅니다. 최근에는 코딩을 몰라도 전략을 짤 수 있는 툴이 많아 접근성이 좋으면서도, 결과가 숫자로 명확히 나오기에 매우 현대적인 유희입니다."},
+        {n: "와인/위스키 데이터베이스 아카이빙", d: "단순히 마시는 게 아니라 생산지, 포도 품종, 빈티지별 강수량, 가격 방어율 등을 데이터화합니다. 앱을 활용해 자신이 마신 술의 통계를 내고, 특정 빈티지의 가치가 상승하는 이유를 논리적으로 분석하며 마시는 '지적 음주'입니다."},
+        {n: "스마트 홈(IoT) 환경 최적화 및 자동화", d: "집안의 모든 기기를 하나로 연결합니다. 조도, 습도, 온도 데이터를 분석해 최적의 루틴을 설계하고, '집'이라는 시스템을 가장 효율적인 상태로 프로그래밍합니다. 현대 기술의 정수를 내 공간에 구현하는 작업입니다."}
+    ],
+    "설계자 🏗️": [
+        {n: "조립식 커스텀 키보드 만들기", d: "기성품 키보드를 사는 게 아니라 몸체(하우징), 스위치, 키캡을 하나하나 골라 직접 조립합니다. 타이핑할 때의 소리와 손맛을 내 취향대로 설계합니다."},
+        {n: "복잡한 보드게임 시나리오 및 맵 제작", d: "게임을 플레이하는 것보다 판을 짜는 데 더 진심인 사람입니다. 플레이어의 동선, 자원의 밸런스, 승리 조건의 변수를 치밀하게 계산하여 하나의 완벽한 '시스템'으로서의 게임 세계를 구축합니다."},
+        {n: "건축적 레고와 모듈러 창작", d: "기성 제품을 조립하는 데 그치지 않고, 자신만의 설계도를 바탕으로 새로운 건물을 올립니다. 하중을 견디는 구조, 내부 인테리어의 디테일, 외관의 균형미를 계산하며 쌓아 올리는 과정은 당신의 본능을 자극합니다."}
+    ],
+    "아이디어 뱅크 💡": [
+        {n: "생성형 AI로 '이상한 이미지' 만들기", d: "'우주에서 떡볶이 먹는 고양이'처럼 말도 안 되는 아이디어가 떠오르면, AI를 이용해 1분 만에 고퀄리티 사진으로 만듭니다. 시대가 허락한 짧지만 최고의 취미입니다."},
+        {n: "숏폼 콘텐츠 기획", d: "거창한 영화를 만드는 게 아닙니다. 갑자기 떠오른 웃긴 아이디어나 기발한 연출법을 15초짜리 영상으로 툭 찍어서 올립니다. 내 머릿속 기획이 사람들에게 먹히는지 바로 확인하는 게 포인트입니다."},
+        {n: "보드게임 커스텀 및 새로운 룰 만들기", d: "기존 보드게임을 그대로 하는 게 아니라, 규칙을 이리저리 바꿔보며 자기만의 게임을 제작해 봅니다. 친구들과 모여서 내가 만든 규칙으로 게임이 잘 돌아갈 때 큰 즐거움을 느낄 것입니다."}
+    ],
+    "리더 🚩": [
+        {n: "아마추어 스포츠 팀 결성 및 운영", d: "단순히 운동만 하는 게 아니라, 매주 대관을 하고 멤버를 모집하며 전술을 짜는 과정 자체가 리더에게는 즐거움입니다. 경기장 안에서 '이쪽으로 패스해!'라고 외치며 팀을 승리로 이끌 때 가장 빛납니다."},
+        {n: "테마 파티 및 이벤트 오거나이징", d: "친구들의 생일이나 연말 모임을 평범하게 넘기지 않습니다. 장소를 빌리고, 드레스코드를 정하고, 경품 추첨 이벤트를 기획하는 등 전체적인 판을 짭니다. 내가 기획한 행사에서 사람들이 즐거워하는 모습을 보며 뿌듯함을 느낍니다."},
+        {n: "실시간 전략 배틀 게임 클랜 혹은 커뮤니티 리더", d: "혼자 게임하는 건 지루합니다. 팀원들을 지휘하고, 실시간으로 보이스 채팅을 하며 '지금 들어가!'라고 오더를 내려 승리를 따낼 때의 쾌감이 남들보다 배가 됩니다."}
+    ],
+    "전략가 🎯": [
+        {n: "보드게임(테이블RPG) 동호회", d: "자원을 관리하고, 테크트리를 타고, 상대의 견제를 예측하며 승점을 쌓는 '정통 전략 보드게임'입니다. 운보다는 철저히 자신의 선택과 수 싸움으로 승패가 갈리기 때문에 당신과 같은 유형의 사람들이 가장 깔끔하게 승복하고 몰입할 수 있는 영역입니다."},
+        {n: "고난도 방탈출 크루 활동", d: "단편적인 퀴즈 풀이를 넘어, 전체 스토리를 관통하는 복선을 회수하고 장치들의 연결 고리를 파악하는 데 집중합니다. 팀원들의 강점을 파악해 역할을 분담하고 최단 시간 기록을 세우는 '지휘관 겸 전략가'의 면모를 발휘하기 좋습니다."},
+        {n: "데이터 기반 가계부 및 퍼스널 파이낸스 최적화", d: "세금 혜택, 복리 이자, 소비 패턴 분석 등을 통해 나만의 자산 성 도표를 그립니다. 예산을 어떻게 배분해야 10년 뒤 목표치에 도달할지 시뮬레이션하며 일상을 시스템화하는 과정에서 에너지를 얻습니다."}
+    ],
+    "행동파 🔥": [
+        {n: "실내 클라이밍", d: "눈앞에 보이는 돌(홀드)을 잡고 꼭대기까지 올라가는 단순하고 명확한 목표가 있습니다. 내 몸의 근육을 다 써서 정상에 딱 올라섰을 때의 그 쾌감은 당신에게 최고의 보상입니다."},
+        {n: "오프로드 라이딩 및 모토캠핑", d: "잘 닦인 도로가 아니라 거친 흙길이나 산길을 오토바이로 누빕니다. 길을 개척하고 자연을 온몸으로 맞으면서 캠핑까지 즐기는 야성적인 취미입니다. 일단 부딪히고 보는 당신과 매우 잘 어울리는 취미입니다."},
+        {n: "도심형 파쿠르 트레이닝", d: "도시의 지형지물을 창의적인 신체 움직임으로 통과하며 자유를 느낍니다. 아크로바틱한 몸놀림으로 도시가 주는 자유를 만끽해 보세요."}
+    ],
+    "경험주의자 👣": [
+        {n: "제철 식재료 파인 다이닝 및 쿠킹 클래스", d: "매달 가장 맛있는 제철 식재료는 달라집니다. 그걸 가장 잘 다루는 셰프의 요리를 맛보거나, 직접 배워서 요리해 봅니다. 입안에서 느껴지는 계절감을 수집하는 행위는 당신에게 큰 만족을 줍니다."},
+        {n: "향수 만들기 및 센트 테라피", d: "보이지 않지만 가장 강력한 기억을 남기는 '향기'에 집중합니다. 나만의 취향이 담긴 향수를 직접 배합해 만들거나, 계절별로 어울리는 공간 향수를 찾아다니는 활동입니다."},
+        {n: "로컬 시장 투어 및 전통주 페어링", d: "뻔한 대형마트가 아니라 지역의 색깔이 묻어나는 재래시장이나 골목길을 탐방합니다. 그곳에서만 파는 특색 있는 술과 안주의 조합(페어링)을 찾아내고 즐기는 '미식 탐험'입니다."}
+    ],
+    "자유로운 영혼 🌈": [
+        {n: "목적지 없는 드라이브와 차박", d: "미리 숙소를 예약하지 않습니다. 차에 침낭 하나 싣고 달리다 '어? 여기 풍경 좋은데?' 싶은 곳에 차를 세우면 그곳이 바로 오늘의 집이 됩니다. 정해진 체크인 시간도, 경로도 없는 완벽한 자유를 만끽할 수 있습니다. 트렁크에 낚싯대 구비는 필수입니다."},
+        {n: "스트릿 댄스 혹은 프리스타일 스케이트보드", d: "정해진 틀에서 똑같이 따라 하는 게 아니라, 리듬에 몸을 맡기고 내 마음대로 움직입니다. 길거리든 공원이든 내가 서 있는 곳이 무대가 되는 경험은 당신에게 최고의 카타르시스를 줍니다."},
+        {n: "디지털 노마드 체험", d: "매일 똑같은 카페, 똑같은 사무실이 지겨울 때 노트북 하나 들고 낯선 동네로 떠납니다. 일하는 시간과 노는 시간의 경계를 허물고, 새로운 환경에서 영감을 받으며 하루를 보냅니다."}
+    ],
+    "조력자 🤝": [
+        {n: "합창단 또는 악기 앙상블(오케스트라)", d: "내가 주인공이 되어 독주를 할 필요가 없습니다. 내 소리가 타인의 소리와 섞여 거대한 화음을 만들어낼 때, 그 '일체감'에서 소름 돋는 카타르시스를 느낍니다. 완벽한 협동의 일부가 되는 즐거움은 당신에게 완벽합니다."},
+        {n: "대형 퍼즐 완성 및 레고 공동 작업", d: "혼자 하면 지루하지만, 마음 맞는 사람들과 수천 조각의 퍼즐을 맞춰 나갈 때 최고의 효율을 냅니다. 서로 '이 조각 여기 있다!'라고 알려주며 조각을 맞춰가는 과정 자체가 정서적인 지지대가 됩니다."},
+        {n: "커뮤니티 가드닝(공동 정원 가꾸기)", d: "내 화분만 돌보는 고립된 가드닝이 아닙니다. 마을 정원이나 공동 텃밭에서 함께 잡초를 뽑고 물을 주며 소소한 대화를 나눕니다. 식물이 자라는 것을 함께 지켜보는 '공동의 목표'가 당신을 편안하게 만듭니다."}
+    ],
+    "고독한 행동파 🏹": [
+        {n: "심야 장거리 자전거 라이딩/러닝", d: "모두가 잠든 시간, 오직 자신의 거친 숨소리와 도로 위 바퀴 소리에만 집중합니다. 타인과의 경쟁이 아닌, 정해진 목표를 채웠을 때의 그 고독한 성취감은 당신에게 더할 나위 없는 보상입니다."},
+        {n: "실내 사격 또는 양궁, 국궁", d: "사선에 서는 순간 세상은 나를 중심으로 좁아집니다. 주변 소음을 차단하고 오직 과녁과 나의 호흡에만 집중하는 그 팽팽한 긴장감을 즐깁니다. 내 손끝에서 결과가 결정되는 깔끔한 승부입니다."},
+        {n: "솔로 백패킹(미니멀 캠핑)", d: "무거운 배낭을 메고 홀로 산을 오르거나 목적지까지 걷습니다. 누구의 도움 없이 스스로 텐트를 치고 밤을 지새우며, 야생에서 살아남는 자신의 생존력을 확인하며 에너지를 얻습니다."}
+    ],
+    "이성주의자 ⚖️": [
+        {n: "옷장 시스템 만들기 및 의류 케어", d: "쇼핑을 '감정적 소비'가 아닌 '시스템 구축'으로 접근합니다. 내 체형과 퍼스널 컬러에 딱 맞는 최소한의 옷들로 최적의 조합(캡슐 워드롭)을 설계합니다. 주말에 옷들을 각 맞춰 정리하고, 스팀 다리미로 주름을 펴거나 보풀을 제거하는 단순 반복 행위는 머리를 식혀주면서도 '내 주변이 통제되고 있다'는 이성적인 안도감을 줍니다."},
+        {n: "천체 관측 및 천문학 스터디", d: "밤하늘의 별을 보며 낭만을 찾기보다 행성의 궤도, 빛의 속도, 우주의 물리 법칙이라는 절대적인 질서에 경탄합니다. 망원경 수치를 맞추고 정해진 좌표에서 별을 찾아내는 정밀한 과정이 당신과 딱 맞습니다."},
+        {n: "체스, 바둑, 장기 기보 연구", d: "체스, 바둑, 장기 등은 운이 0%인 게임입니다. 오직 실력과 논리로만 승부하죠. 특히 이미 끝난 거장들의 게임(기보)을 복기하며 '왜 여기서 이 수를 두었는가?'를 논리적으로 역추적하는 과정은 당신에게 최고의 두뇌 놀이터입니다."}
+    ],
+    "전술가 🗺️": [
+        {n: "서바이벌 게임", d: "단순히 총을 쏘는 게 아니라, 지형지물을 이용해 은폐하고 팀원들과 수신호를 주고받으며 상대 팀을 제압합니다. 찰나의 순간에 최선의 판단을 내려야 하는 '전술적 상황' 그 자체를 즐기는 취미입니다."},
+        {n: "테니스 또는 배드민턴(수 싸움 중심)", d: "힘으로만 치는 게 아닙니다. 상대의 위치를 보고 구석으로 공을 찔러 넣거나, 회전을 걸어 당황하게 만드는 등 매 순간 '공격 루트'를 설계해야 합니다. 내 전술이 먹혀서 상대가 꼼짝 못 할 때의 쾌감이 엄청납니다."},
+        {n: "요리 레시피 '최적화'(밀프렙 시스템)", d: "그냥 요리가 아닙니다. 일주일 치 식단을 가장 적은 시간과 비용으로, 하지만 가장 맛있게 만들어내는 '주방 전술'을 짭니다. 재료 손질 순서부터 화구 사용 순서까지 완벽하게 머릿속으로 시뮬레이션해서 딱 끝냈을 때 에너지를 얻을 수 있을 것입니다."}
+    ],
+    "공감 능력자 💗": [
+        {n: "파운드 푸티지(Found Footage) 수집 및 상상하기", d: "벼룩시장이나 빈티지 숍에서 누군지 모를 사람의 옛날 사진, 편지, 혹은 중고 책 속의 낙서를 수집합니다. 그 기록의 주인은 어떤 마음이었을지, 왜 이 글을 남겼을지 타인의 삶을 추론하고 공감하며 짧은 소설을 써보거나 상상해 봅니다."},
+        {n: "사운드스케이프(Soundscape) 녹음 및 공유", d: "시각적인 풍경보다 '소리'가 주는 정서적 울림에 집중합니다. 비 오는 날의 창가 소리, 시장 상인들의 활기찬 대화, 새벽 공원의 고요함 등을 녹음합니다. 그 소리를 다시 들으며 당시의 분위기와 감정을 재경험합니다."},
+        {n: "반려돌(Pet Rock) 육성 및 스토리텔링", d: "돌멩이한테 무슨 공감이냐 하겠지만, 당신에게는 가능합니다. 움직이지 않는 돌에 이름과 성격을 부여하고, 매일의 기분을 투영하며 옷을 입혀주거나 자리를 마련해 줍니다."}
+    ],
+    "사색가 🧘": [
+        {n: "도시 야경 촬영 및 아카이빙", d: "잠들지 않는 도시의 궤적을 긴 호흡으로 담아내며 시간의 흐름을 포착합니다. 수많은 사람들이 바삐 움직이는 도시 속에서 당신만은 사진 한 장에 당신의 깊은 고민을 담을 것입니다."},
+        {n: "아날로그 필름 현상", d: "기다림의 미학을 느끼며 사진이 인화되는 마법 같은 과정을 직접 수행합니다. 섬세하게 관리하고 약품을 사용하는 그 조심스러운 시간 동안 당신의 머릿속은 더욱 차갑게 움직이고 있을 것입니다."},
+        {n: "미니어처 제작", d: "작은 세상에 생명력을 불어넣으며 정교한 연출의 재미를 경험합니다. 당신만의 작은 세상을 만드는 그 순간만큼은 시간이 온전히 그 세상에서만 흐를 것입니다."}
+    ],
+    "체계적인 반항아 🦾": [
+        {n: "목적지 없는 드라이브와 차박", d: "미리 숙소를 예약하지 않습니다. 차에 침낭 하나 싣고 달리다 어? 여기 풍경 좋은데? 싶은 곳에 차를 세우면 그곳이 바로 오늘의 집이 됩니다. 정해진 체크인 시간도, 경로도 없는 완벽한 자유를 만끽할 수 있습니다. 트렁크에 낚싯대 구비는 필수입니다."},
+        {n: "스트릿 댄스 혹은 프리스타일 스케이트보드", d: "정해진 틀에서 똑같이 따라 하는 게 아니라, 리듬에 몸을 맡기고 내 마음대로 움직입니다. 길거리든 공원이든 내가 서 있는 곳이 무대가 되는 경험은 당신에게 최고의 카타르시스를 줍니다."},
+        {n: "오픈소스 해킹 및 소프트웨어 최적화", d: "정해진 소프트웨어 환경에 만족하지 않고, 소스 코드를 수정하여 시스템을 자신에게 최적화합니다. 기존의 제약을 뛰어넘어 더 나은 효율을 찾아내는 '지적인 반항'을 통해 가장 큰 지적 희열을 느낍니다."}
+    ],
+    "낭만적 완벽주의자 🎨": [
+        {n: "고난도 공예품 만들기 및 체험", d: "낭만적인 시각을 가졌음에도 완벽을 추구하는 당신에게 공예는 딱입니다. 낭만적인 디자인을 꿈꾸지만, 바느질 한 땀의 간격이나 마감 처리에는 누구보다 엄격합니다. 아름다움을 탐하지만 그 누구보다 완벽을 사랑하는 당신에게 강력히 추천하는 취미입니다."},
+        {n: "나만의 방 혹은 작업공간 셀프 인테리어", d: "가구 하나 배치할 때도 평면도를 그려보고, 조명 위치와 선 정리까지 완벽하게 계산해서 배치합니다. 내 공간이 내 계획대로 착착 변해가는 걸 볼 때 카타르시스를 느낄 것입니다."},
+        {n: "미니어처 제작", d: "작은 세상에 생명력을 불어넣으며 정교한 연출의 재미를 경험합니다. 당신만의 작은 세상을 만드는 그 순간만큼은 시간이 온전히 그 세상에서만 흐를 것입니다."}
+    ],
+    "갓생러 🏆": [
+        {n: "미라클 모닝 및 오운완 챌린지", d: "단순히 운동하는 것을 넘어 매일 정해진 시간에 기상하고 루틴을 수행하며 이를 기록으로 남기는 행위 자체에서 쾌감을 느낄 것입니다. 자신의 신체와 정신을 완벽하게 통제하고 있다는 감각은 당신의 하루를 지탱하는 가장 강력한 연료가 됩니다."},
+        {n: "생산성 툴과 워크플로우 설계", d: "자신의 지식, 일정, 목표를 한눈에 볼 수 있는 완벽한 '디지털 세컨드 브레인'을 구축해 봅니다. 남들이 만들어둔 템플릿을 쓰는 것이 아니라 나만의 데이터 로직을 설계하고 시스템을 최적화하며 일상의 효율을 극한으로 끌어올리는 데 몰입합니다."},
+        {n: "수익형 블로그 및 퍼스널 브랜딩 운영", d: "자신이 가진 전문 지식이나 정보를 가공하여 가치를 창출하는 과정을 즐길 수 있습니다. 조회수와 수익률 데이터를 분석하고, 어떤 키워드가 시장에서 반응하는지 전략적으로 접근하며 자신의 영향력을 수치화하는 과정에서 에너지를 얻습니다."}
+    ],
+    "효율적 이상주의자 🧪": [
+        {n: "오픈소스 프로젝트 참여 및 지식 공유(위키, 블로그)", d: "내가 아는 정보나 기술이 사장되는 걸 아까워하는 당신에게 최적의 취미입니다. 정보를 잘 정리해 나무위키 같은 곳에 기여하거나, 누구나 쓸 수 있는 코드를 공유합니다. 최소한의 노력으로 최대한의 사람에게 도움을 주는 가장 효율적인 이타주의입니다."},
+        {n: "미니멀리즘 생활 설계", d: "환경 보호라는 대의명분을 지키면서도, 불필요한 소비와 쓰레기를 줄여 내 삶의 비용과 에너지를 최적화합니다. 단순히 아끼는 게 아니라 하나를 사도 평생 쓸 물건을 고르는 안목의 효율을 추구합니다."},
+        {n: "마이크로 인플루언서 활동", d: "내 경험과 통찰을 콘텐츠로 만듭니다. 일기를 쓰는 대신 남들에게도 도움 될 정보로 가공해 SNS에 올립니다. 내 생각에 공감하는 사람들이 모이면 나중에 이를 통해 수익화나 캠페인까지 연결할 수 있는 전술적 낭만파입니다."}
+    ],
+    "인싸 💃": [
+        {n: "소셜 네트워킹 파티 및 커뮤니티 호스팅", d: "새로운 사람을 만나는 것은 당신에게 놀이이자 충전입니다. 다양한 분야의 사람들을 연결해주고 모임의 분위기를 주도하는 '휴먼 허브' 역할을 할 때 가장 큰 에너지를 얻습니다."},
+        {n: "팝업스토어 탐방 및 숏폼 챌린지", d: "지금 가장 핫한 장소와 트렌드는 무조건 직접 경험해야 직성이 풀립니다. 유행의 중심에서 사람들과 소통하고, 그 활기찬 에너지를 영상이나 사진으로 공유하며 대중과 호흡합니다."},
+        {n: "이색 스포츠 토너먼트 개최", d: "이미 유행하는 스포츠가 아닌 '이색 패들 테니스'나 '야간 야광 볼링'처럼 독특한 룰을 가진 대회를 직접 설계하고 개최합니다. 스폰서를 구하거나 굿즈를 제작하는 등 판을 크게 벌려 사람들을 열광시키는 '기획자형 인싸'의 면모를 발휘하기에 안성맞춤입니다."}
+    ],
+    "자발적 아싸 🏜️": [
+        {n: "심야 버스 종점 투어 및 전용 플레이리스트 구성", d: "모두가 내리는 버스의 종점까지 홀로 가봅니다. 낯선 풍경을 배경 삼아 오직 지금 이 순간의 감정에만 맞춘 음악 리스트를 만들고 감상합니다. 세상과 잠시 단절되어 목적지 없는 여행자가 될 때, 가장 깊은 내면의 평온을 찾습니다."},
+        {n: "매크로(접사) 사진 촬영", d: "거창한 풍경이 아니라 집 안의 작은 사물, 혹은 베란다 화분의 잎맥처럼 아주 작은 세계를 렌즈로 들여다봅니다. 뷰파인더 너머의 미세한 디테일에 집중하다 보면 주변의 소음은 사라지고, 오직 나와 피사체만 남는 듯한 깊은 무아지경에 빠져듭니다."},
+        {n: "레트로 게임기 복원과 수집", d: "최신 온라인 게임처럼 타인과 연결될 필요가 없는 '완벽한 고립형 유희'입니다. 낡은 팩을 닦고 오래된 기기를 수리하며 수십 년 전의 도트 그래픽 속으로 침잠합니다. 누구의 방해도 받지 않는 나만의 방에서 어린 시절의 순수한 몰입을 재현합니다."}
+    ],
+    "완벽주의자 🏁": [
+        {n: "하이엔드 영상 색보정 및 프레임 편집", d: "단순한 영상 편집이 아닙니다. 픽셀 단위로 색감을 조정하고 프레임 단위로 컷을 나누며 단 0.1초의 오차도 허용하지 않는 최종 결과물을 만들어냅니다. 내 기준에 도달하지 못한 작업물은 결코 세상에 내놓지 않는 철저함을 즐깁니다."},
+        {n: "초정밀 목공 및 가구 복원", d: "나무의 결을 맞추는 것부터 소수점 단위의 치수 오차까지 잡아냅니다. 사포질 한 번에도 타협하지 않으며, 손끝에서 느껴지는 질감이 완벽한 매끄러움에 도달했을 때 비로소 도구를 내려놓는 장인 정신의 유희를 경험합니다."},
+        {n: "데이터 기반 바디 프로필 및 신체 최적화", d: "운동을 단순한 취미가 아닌 신체 설계로 접근합니다. 매일의 영양 섭취량, 근육량의 변화, 수면 패턴을 숫자로 기록하고 분석하며, 자신의 몸을 가장 완벽한 컨디션으로 통제하고 관리하는 과정에서 에너지를 얻습니다."}
+    ],
+    "게으른 완벽주의자 🐌": [
+        {n: "고사양 컴퓨터 조립 및 셋업 최적화", d: "직접 움직이기보다는 최상의 환경을 구축하는 데 몰입합니다. 부품을 고르고 선 정리를 완벽하게 하는 과정에는 진심이지만, 일단 세팅이 끝나면 그 안에서 가장 편안한 자세로 휴식을 즐깁니다."},
+        {n: "고화질 명작 영화 정주행 및 비평", d: "어설픈 콘텐츠는 보기 싫어하는 완벽주의적 안목을 가졌습니다. 침대에 누워 가장 편한 자세로 세계적인 거장들의 영화를 감상하고 그 안에 담긴 디테일과 복선을 분석하며 지적 만족감을 채웁니다."},
+        {n: "AI 툴을 활용한 디지털 창작 및 자동화", d: "처음부터 끝까지 직접 그리기엔 에너지가 많이 들지만, 완벽한 결과물은 보고 싶어 합니다. 생성형 AI에게 정교한 프롬프트를 입력해 고퀄리티 이미지를 뽑아내거나 반복적인 업무를 줄여주는 자동화 툴을 세팅하며 최소 노력, 최대 결과의 생산성을 즐깁니다."}
+    ],
+    "방구석 사령관 🏛️": [
+        {n: "문명·심시티 등 도시 건설 시뮬레이션 게임", d: "직접 발로 뛰는 대신 화면 속 세상을 완벽하게 통제합니다. 도로망을 설계하고 자원을 배분하며 자신만의 논리로 돌아가는 거대한 시스템을 구축할 때 가장 큰 지적 희열을 느낍니다."},
+        {n: "역사 및 밀리터리 다큐멘터리 탐독", d: "과거의 전략과 전술, 국가의 흥망성쇠를 분석하는 데 진심입니다. 방 안에서 책과 영상을 통해 방대한 지식을 섭렵하며 머릿속으로 수많은 가상 시나리오를 그려보는 '사유의 정복자'입니다."},
+        {n: "구글 맵 기반 가상 여행 루트 및 테마 가이드 제작", d: "실제로 가지 않더라도 구글 스트리트 뷰와 위성 지도를 활용해 전 세계의 명소를 탐험합니다. 특정 테마(예: 로마 제국의 유적 투어, 뉴욕 최고의 야경 루트 등)를 정해 최적의 동선과 맛집 리스트를 구글 맵 레이어로 정교하게 구축하며 정보의 제국을 만듭니다."}
+    ],
+    "예스맨 👌": [
+        {n: "맛집 동호회 및 디저트 투어 참여", d: "사람들이 가고 싶어 하는 핫플레이스를 함께 방문하고, 그들이 맛있게 먹는 모습을 보며 덩달아 행복해지는 평화주의적 유희입니다. 이거 먹을까?라는 질문에 언제나 좋아요!라고 답할 준비가 되어 있습니다."},
+        {n: "테마형 보드게임 및 퀴즈 쇼", d: "사람들과 어울려 웃고 떠드는 환경에서 빛을 발합니다. 정해진 규칙 안에서 기쁘게 오케이를 외치며 게임의 흐름에 몸을 맡깁니다. 승부 자체보다 함께 웃는 순간에 집중하며 분위기를 유연하게 만드는 에너제틱한 플레이어로 활약합니다."},
+        {n: "리액션형 버스킹 관람 및 원데이 댄스 챌린지", d: "밝은 에너지가 넘치는 거리 공연이나 댄스 클래스에 참여합니다. 처음 보는 동작도 기쁘게 따라 해보고, 멋진 퍼포먼스에는 가장 크게 박수 치며 호응합니다. 능동적으로 현장의 온도를 높이며 자신의 긍정적인 파동을 주변에 전파하는 활동입니다."}
+    ],
+    "탐험가 🧭": [
+        {n: "서울에서 땅끝까지 시내버스 투어", d: "고속버스나 기차 같은 편한 길을 두고 수십 번의 환승을 거쳐 시내버스만으로 국토를 종단합니다. 각 지역의 버스 노선과 환승 시간을 치밀하게 계산하고, 예상치 못한 변수를 마주하며 목적지에 도달하는 과정에서 진정한 탐험의 희열을 만끽합니다."},
+        {n: "이색적인 글로벌 식재료 마트 탐방", d: "동네 마트가 아닌 해외 식재료를 전문으로 파는 마켓을 찾아갑니다. 이름도 생소한 향신료나 소스를 구매해 직접 요리해 보며 미각의 영토를 전 세계로 확장하는 탐험가적인 미식 생활을 즐겨봅니다."},
+        {n: "로컬 원데이 액티비티 도장 깨기", d: "가죽 공예부터 드로잉, 서핑, 도예까지 종목을 가리지 않고 처음 해보는 일에 도전합니다. 하나에 깊이 몰입하기보다 세상의 수많은 경험치를 골고루 섭렵하며 자신의 취향 지도를 그려 나가는 과정에서 희열을 느낍니다."}
+    ],
+    "프로 과몰입러 🫠": [
+        {n: "특정 장르 콘텐츠 세계관 분석", d: "게임이나 영화 및 애니메이션을 단순히 즐기는 것을 넘어 작품 속 숨겨진 설정, 복선, 인물 관계도를 완벽하게 파헤칩니다. 관련 커뮤니티의 이론을 섭렵하거나 자신만의 분석 노트를 만들며 가상의 세계관에 완전히 동기화될 때 가장 큰 즐거움을 얻습니다."},
+        {n: "고난도 나노 블록 및 정밀 프라모델 조립", d: "수천 개의 미세한 부품을 조립하며 현실의 고민을 잊습니다. 손끝의 감각에만 집중하여 한 피스씩 맞춰 나가다 보면 몇 시간이 순식간에 지나가는 무아지경의 상태를 경험합니다. 완성된 결과물은 당신의 집요한 몰입이 남긴 훈장입니다."},
+        {n: "극사실주의 세밀화 및 보태니컬 아트", d: "잎맥의 미세한 흐름이나 사물의 질감을 사진보다 더 정밀하게 종이 위에 옮깁니다. 며칠 동안 한 부분만 파고드는 고도의 집중력이 요구되지만, 선 하나하나가 완벽하게 맞물려 실물처럼 살아날 때 세상이 멈춘 듯한 깊은 몰입감을 선사합니다."}
+    ],
+    "불굴의 성자 🙏": [
+        {n: "전통 필사 및 경전/명언 옮겨 쓰기", d: "좋은 문장을 정갈한 글씨로 한 자씩 옮겨 적습니다. 단순히 글자를 쓰는 행위를 넘어 손끝의 움직임과 문장의 의미에만 집중하며 흐트러진 마음을 차분하게 가라앉히고 내면의 질서를 세우는 정적인 수행을 즐깁니다."},
+        {n: "슬로우 요가 및 정통 명상 수련", d: "화려한 동작보다는 자신의 호흡과 근육의 미세한 떨림을 온전히 느끼는 데 집중합니다. 몸이 보내는 신호에 귀를 기울이며 인내하고, 외부의 자극으로부터 자신을 분리하여 완벽한 정신적 자유를 경험하는 시간을 소중히 여깁니다."},
+        {n: "장기 보관용 발효 음식(김장, 담금주) 만들기", d: "즉각적인 결과보다 시간이 만들어내는 가치를 믿습니다. 정성스럽게 재료를 손질하고 오랜 시간 기다려야 완성되는 발효 음식을 만들며, 기다림 또한 하나의 고귀한 과정임을 몸소 실천하고 그 결실을 주변과 나눕니다."}
+    ],
+    "관찰자 🕵️": [
+        {n: "도심 속 사람 구경 및 특징 스케치", d: "카페 창가에 앉아 지나가는 사람들의 차림새, 걸음걸이, 표정을 유심히 살핍니다. 그들이 어디로 가는지, 어떤 기분일지 혼자만의 시나리오를 써보거나 짧은 특징을 기록하며(혹은 그리거나) 세상이라는 거대한 무대의 관객으로서 숨은 재미를 찾습니다."},
+        {n: "빈티지 카메라로 담는 일상의 패턴 촬영", d: "화려한 피사체보다 낡은 벽면의 균열, 보도블록의 반복적인 무늬 등 남들이 무심코 지나치는 패턴에 주목합니다. 세상을 프레임 안에 가두어 관찰하고, 현상된 사진 속에서 현실에서는 보지 못했던 새로운 질서를 발견할 때 지적 희열을 느낍니다."},
+        {n: "고전 추리 소설 속 트릭 복기 및 논리 분석", d: "단순히 결말을 확인하는 것이 아니라 범인이 남긴 단서와 작가의 서술 트릭을 역추적합니다. 작가가 던져놓은 복선들을 하나씩 연결해 보며 보이지 않는 논리의 그물을 파악하고 구조화하는 지적인 수사 과정을 즐깁니다."}
+    ],
+    "방관자 👀": [
+        {n: "실시간 자연 풍경 라이브 캠 스트리밍 시청", d: "세계 각지의 해변, 숲, 혹은 도시의 교차로를 실시간으로 보여주는 라이브 캠을 틀어둡니다. 직접 개입하지 않고 그저 흘러가는 풍경과 사람들을 관조하며, 내가 그곳에 있지 않아도 세상은 돌아간다는 사실을 확인하며 기묘한 안정감을 얻습니다."},
+        {n: "멍 때리기 대회 참여 및 정적인 사색", d: "아무것도 하지 않는 상태를 유지하는 데 탁월합니다. 단순히 쉬는 게 아니라 뇌에 들어오는 모든 자극을 필터링 없이 흘려보내는 연습을 합니다. 어떤 것에도 동요하지 않고 세상을 투명하게 통과시키는 상태에서 휴식의 정점을 경험합니다."},
+        {n: "독립 영화 및 실험 영화 무작위 감상", d: "대중적인 기승전결보다는 이해하기 어려운 상징과 정적인 호흡의 영화를 선호합니다. 영화의 메시지를 굳이 해석하려 애쓰지 않고 화면 속의 색감과 소리를 하나의 배경처럼 받아들이며 그 거리감을 즐깁니다."}
+    ],
+    "사교적인 반항아 🕺": [
+        {n: "언더그라운드 클럽 파티 및 디제잉 세션", d: "주류 문화의 정형화된 틀을 거부하고 자신만의 색깔이 뚜렷한 음악에 열광합니다. 단순히 춤추는 것을 넘어 직접 비트를 섞고 판을 뒤흔드는 디제잉을 통해 정해진 규칙을 깨는 짜릿한 해방감을 사람들과 공유합니다."},
+        {n: "게릴라 스트리트 아트 및 팝업 그래피티 활동", d: "깨끗하고 정돈된 벽보다 거친 거리의 벽면을 자신의 캔버스로 삼습니다. 사회적인 메시지나 자신만의 유머를 담은 그래피티를 통해 무채색 도시에 균열을 내며, 그 파격적인 퍼포먼스를 지켜보는 사람들의 반응을 즐깁니다."},
+        {n: "이색적인 코스튬 테마 파티 기획", d: "평범한 모임은 거부합니다. 누가 더 이상하게 입고 오나 같은 파격적인 드레스코드를 정해 사람들을 모읍니다. 기존의 에티켓을 풍자하거나 뒤집는 파티를 통해 사람들에게 신선한 충격을 주고 그 혼란스러운 즐거움 속에서 주인공이 됩니다."}
+    ],
+    "파수꾼 🛡️": [
+        {n: "고서 복원 및 오래된 물건 관리", d: "시간이 흐르며 낡고 훼손된 것들을 정성껏 닦고 수리하여 보존합니다. 단순히 물건을 고치는 게 아니라 그 안에 담긴 역사와 가치를 지켜낸다는 사명감을 느끼며, 정갈하게 정리된 수집품들을 볼 때 깊은 안도감을 얻습니다."},
+        {n: "전통 예절 및 다도 수련", d: "빠르게 변하는 세상 속에서도 변치 않는 예법과 전통을 중시합니다. 차를 내리는 일정한 순서와 격식을 지키며 마음의 동요를 다스리고, 정해진 원칙이 주는 고요한 질서 속에서 자신과 주변을 차분하게 보호하는 힘을 기릅니다."},
+        {n: "빈티지 시계 및 정밀 기계 분해 청소", d: "정교하게 맞물려 돌아가는 기계식 시계나 오래된 카메라의 내부를 들여다봅니다. 미세한 먼지를 털어내고 기름칠을 하며 멈췄던 시간을 다시 흐르게 만듭니다. 작은 부품 하나하나가 제 자리를 지키도록 관리하는 과정에서 완벽한 질서와 보호의 희열을 느낍니다."}
+    ],
+    "자유로운 중재자 🍃": [
+        {n: "반려식물 케어 및 테라리움 제작", d: "말 없는 생명들과 교감하며 자신만의 작은 숲을 가꿉니다. 서로 다른 식물들이 한 공간에서 조화롭게 자랄 수 있는 환경을 설계하고, 생명이 움트는 과정을 지켜보며 복잡한 인간관계에서 벗어나 순수한 생명력의 조화를 경험합니다."},
+        {n: "자연의 소리 수집 및 ASMR 제작", d: "빗소리, 바람 소리, 장작 타는 소리처럼 경계가 없는 자연의 소리를 녹음하고 섞어 나만의 휴식 음원을 만듭니다. 특정 장르에 갇히지 않은 자유로운 소리의 흐름을 통해 듣는 이와 만드는 이 모두의 마음을 유연하게 풀어주는 치유의 시간을 즐깁니다."},
+        {n: "익명 고민 상담소 운영", d: "온라인이나 오프라인에서 사람들의 고민을 편견 없이 들어주는 공간을 운영합니다. 대립하는 두 의견 사이에서 공통분모를 찾아내거나, 지친 이들에게 따뜻한 지지를 보냅니다. 타인의 마음이 평온을 되찾도록 돕는 과정에서 정서적 보람과 조화의 가치를 실현합니다."}
+    ],
+    "개인주의자 🎭": [
+        {n: "1인 연극 연습 및 모놀로그 연기", d: "관객을 의식하지 않고 오직 자신만을 위한 연기를 펼칩니다. 극 중 인물의 감정에 깊이 몰입해 보며 평소 드러내지 않았던 자신의 다채로운 자아를 탐색합니다. 타인의 평가에서 완전히 자유로운 채로 오직 나만의 감정에만 집중하는 시간을 가집니다."},
+        {n: "개성 강한 독립 잡지 및 진(Zine) 제작", d: "대중의 취향에 맞춘 잡지가 아니라, 오로지 나의 관심사와 철학만을 담은 소규모 출판물을 만듭니다. 서투른 디자인과 파격적인 구성일지라도, 세상에 단 하나뿐인 나의 목소리를 물리적인 결과물로 기록하고 소장하는 독립적인 유희를 즐깁니다."},
+        {n: "홀로 떠나는 테마 미식 기행", d: "누군가와 메뉴를 조율할 필요 없이, 오직 나의 미각이 이끄는 곳으로 향합니다. 정적이고 고급스러운 식당에서 음식의 맛과 향에만 온전히 집중하며, 누구에게도 방해받지 않는 완벽한 1인용 식사를 통해 자존감을 충전하고 독립적인 삶의 태도를 만끽합니다."}
+    ],
+    "마에스트로 🎼": [
+        {n: "홈 카페 및 홈 바 구성 및 메뉴 레시피 정립", d: "단순히 음료를 만드는 게 아니라 원두의 분쇄도, 물의 온도, 재료의 배율을 수치화하여 최상의 맛을 내는 표준 공정을 만듭니다. 나만의 완벽한 레시피로 손님에게 일관된 감동을 선사하며, 자신의 공간 안에서 일어나는 모든 감각적 경험을 설계하고 주도합니다."},
+        {n: "도시 서바이벌 및 고난도 방탈출 설계", d: "남이 만든 문제를 푸는 것에 만족하지 않고, 직접 완벽한 트릭과 논리적 함정을 설계합니다. 사람들이 자신의 시나리오 안에서 헤매고 감탄하는 과정을 지켜보며, 보이지 않는 곳에서 판을 짜고 사람들의 심리까지 조종하는 설계자로서의 희열을 느낍니다."},
+        {n: "고난도 루틴 설계 및 맨몸 운동", d: "단순히 무거운 것을 드는 게 아니라, 자신의 근육 하나하나를 완벽하게 통제하여 고난도 동작(플란체, 핸드스탠드 등)을 수행합니다. 내 몸이라는 가장 다루기 힘든 시스템을 완벽하게 지휘하여 중력을 거스르는 질서를 만들어낼 때 압도적인 성취감을 얻습니다."}
+    ],
+    "불도저 🚜": [
+        {n: "고강도 크로스핏 및 장애물 달리기", d: "자신의 한계를 시험하는 극한의 운동에 몰입합니다. 눈앞의 무거운 무게를 들어 올리거나 거친 장애물을 하나씩 정복해 나갈 때 살아있음을 느끼며, 어떤 난관도 힘으로 밀어붙여 끝내 돌파해 내는 저력을 보여줍니다."},
+        {n: "단기간 완성형 하드웨어 DIY 및 목공", d: "복잡한 이론보다는 당장 눈에 보이는 결과물을 만들어내는 데 집중합니다. 거친 재료를 다듬고 조립하여 투박하지만 튼튼한 가구나 장비를 뚝딱 완성하며, 자신의 물리적인 영향력이 세상에 흔적을 남기는 과정을 즐깁니다."},
+        {n: "초장편 시리즈 정주행 및 방대한 아카이브 정리", d: "남들은 엄두도 못 낼 수천 페이지의 대하소설이나 수백 편의 시리즈물을 단기간에 끝까지 파헤칩니다. 앉아서 하는 활동이지만, 목표한 분량을 반드시 끝내겠다는 무서운 집중력으로 지식의 영토를 점령해 나가며, 방대한 자료를 자신만의 체계로 한 번에 정리해버리는 정신적 돌파를 즐깁니다."}
+    ],
+    "사업가 💼": [
+        {n: "중고 물품 리셀 및 빈티지 트레이딩", d: "가려져 있던 물건의 진 가치를 알아보고 이를 필요로 하는 사람에게 연결합니다. 시장의 흐름을 읽고 적절한 타이밍에 거래를 성사시켜 수익을 남기는 과정 자체를 하나의 고도화된 게임이자 지적 유희로 즐깁니다."},
+        {n: "네트워킹 파티 및 비즈니스 소모임 주최", d: "유능한 사람들을 한자리에 모으고 서로의 니즈를 연결해 주는 판을 짭니다. 새로운 정보가 오가고 실질적인 기회가 창출되는 생산적인 분위기를 주도하며, 사람과 자원이 모여드는 중심점에서 자신의 존재감을 확인합니다."},
+        {n: "퍼스널 브랜딩 및 수익형 블로그 운영", d: "자신의 지식이나 일상을 하나의 콘텐츠 자산으로 만듭니다. 어떻게 하면 더 많은 사람에게 도달하고 영향력을 확장할 수 있을지 전략을 짜고, 숫자로 나타나는 성장 지표를 확인하며 무형의 가치를 유형의 자산으로 전환하는 재미에 빠집니다."}
+    ],
+    "친절한 독재자 🐺": [
+        {n: "공간 큐레이팅 및 홈 스테이징", d: "단순히 방을 꾸미는 게 아니라, 그 공간에 들어온 사람의 동선과 시선, 기분까지 설계합니다. 가구의 각도와 조명의 밝기를 당신의 철저한 미적 기준에 맞춰 배치하고, 당신이 의도한 대로 사람들이 감탄하며 머물 때 짜릿한 지배적 쾌감을 느낍니다."},
+        {n: "고난도 전략 보드게임 마스터 및 룰 가이드(하우스)", d: "복잡한 규칙을 완벽하게 숙지한 뒤, 사람들에게 게임을 가르치고 판을 주도합니다. 게임이 당신의 가이드에 따라 매끄럽게 진행되도록 관리하면서, 동시에 압도적인 전략으로 승리를 쟁취하여 자비롭지만 강력한 리더의 면모를 확인합니다."},
+        {n: "퍼스널 브랜드 가이드라인 및 만능 템플릿 제작", d: "남들이 우왕좌왕하며 비효율적으로 일할 때, 당신은 누구나 따라 하기만 하면 완벽한 결과가 나오는 마스터 템플릿이나 매뉴얼을 만듭니다. 질서 없는 혼돈에 당신만의 엄격한 시스템을 부여하여 모두를 정답으로 이끄는 구조적 성취감을 즐깁니다."}
+    ],
+    "감성적인 수학자 💎": [
+        {n: "알고리즘 기반의 생성형 예술(Generative Art) 제작", d: "수식과 코드를 활용해 아름다운 시각적 패턴을 만듭니다. 논리적인 계산이 예상치 못한 감성적 미학으로 변모하는 지점을 탐구하며, 차가운 숫자 뒤에 숨겨진 유려한 아름다움을 데이터로 증명해 보입니다."},
+        {n: "천체 관측 및 우주 물리 시뮬레이션", d: "끝없는 우주의 질서를 숫자로 이해하고 관측합니다. 행성의 궤도와 별의 주기를 계산하며 광활한 카오스 속에서도 변치 않는 법칙이 존재한다는 사실에 경외감을 느끼고, 논리로 세상을 해석하는 자신만의 조용한 우주를 가꿉니다."},
+        {n: "정밀 브루잉 및 분자 단위 미학 칵테일 조제", d: "원두의 무게, 물의 온도, 추출 시간, 혹은 액체의 밀도 차이를 이용한 층 쌓기 등 철저하게 계산된 수치로 완벽한 한 잔을 설계합니다. 과학적 실험 같은 조제 과정을 거쳐 탄생한 감성적인 맛과 비주얼을 즐기며, 논리가 감각으로 치환되는 순간을 만끽합니다."}
+    ]
+};
+
+        let targetFP = isA ? (reverseMap[finalFP] || "Default") : finalFP;
+        const currentHobbies = hobbyDb[targetFP] || hobbyDb["설계자 🏗️"];
+        const hContainer = document.getElementById('hobby-recommendations');
+        hContainer.innerHTML = ''; 
+
+        currentHobbies.forEach((h, idx) => {
+            const item = document.createElement('div');
+            item.className = 'hobby-item';
+            item.innerHTML = `
+                <span class="hobby-item-name"> 0${idx+1}: ${h.n}</span>
+                <span class="hobby-item-desc">${h.d}</span>
+            `;
+            hContainer.appendChild(item);
+        });
+    }
+</script>
+</body>
+</html>
